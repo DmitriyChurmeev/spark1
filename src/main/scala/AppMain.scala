@@ -1,42 +1,50 @@
-import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql._
+
 
 object AppMain {
 
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder()
-      .appName("SparkLesson1")
+
+    val sparkSession = SparkSession.builder()
+      .appName("SparkLesson2.1")
       .master("local")
       .getOrCreate()
 
-    import spark.implicits._
-//    val coursesDF = courses.toDF("title", "duration (h)")
+    val restaurantStructType = StructType(
+      Seq(StructField("average_cost_for_two", LongType),
+      StructField("cuisines", StringType),
+      StructField("deeplink", StringType),
+      StructField("has_online_delivery", IntegerType),
+      StructField("is_delivering_now", IntegerType),
+      StructField("menu_url", StringType),
+      StructField("name", StringType),
+      StructField("opened", StringType),
+      StructField("photos_url", StringType),
+      StructField("url", StringType),
+      StructField("user_rating",
+        StructType(Seq(
+          StructField("aggregate_rating", StringType),
+          StructField("rating_color", StringType),
+          StructField("rating_text", StringType),
+          StructField("votes", StringType)
+        )))
+    ))
 
-//    coursesDF.show()
-//    coursesDF.printSchema()
-    import org.apache.spark.sql.types._
-    val data = Seq(
-      Row("s9FH4rDMvds", "2020-08-11T22:21:49Z", "UCGfBwrCoi9ZJjKiUK8MmJNw", "2020-08-12T00:00:00Z"),
-      Row("kZxn-0uoqV8", "2020-08-11T14:00:21Z", "UCGFNp4Pialo9wjT9Bo8wECA", "2020-08-12T00:00:00Z"),
-      Row("QHpU9xLX3nU", "2020-08-10T16:32:12Z", "UCAuvouPCYSOufWtv8qbe6wA", "2020-08-12T00:00:00Z")
-    )
+    val restaurantDataFrame = sparkSession.read
+      .format("json")
+      .schema(restaurantStructType)
+      .load("src/main/resources/restaurant_ex.json")
 
-    val schema = Array(
-      StructField("videoId", StringType),
-      StructField("publishedAt", StringType),
-      StructField("channelId", StringType),
-      StructField("trendingDate", StringType)
-    )
+    restaurantDataFrame.show()
 
-    val df = spark.createDataFrame(
-      spark.sparkContext.parallelize(data),
-      StructType(schema)
-    )
+    val restaurantDataFrameMapTypes = restaurantDataFrame.schema.fields.map(f => f.name -> f.dataType).toMap
 
-    df.show()
+    val isDeliveringFrameType = restaurantDataFrameMapTypes.get("is_delivering_now").map(_.toString).getOrElse("Not found")
+    val hasOnlineDeliveryFrameType = restaurantDataFrameMapTypes.get("has_online_delivery").map(_.toString).getOrElse("Not found")
 
-    spark.stop()
+    println(s"is_delivering_now frame type = $isDeliveringFrameType")
+    println(s"has_online_delivery frame type = $hasOnlineDeliveryFrameType")
+    sparkSession.stop()
   }
-
-
-
 }
